@@ -3,34 +3,32 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>P2P Rocket Soccer Pro</title>
+    <title>P2P Soccer Fixed</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
         body { margin: 0; background: #1a1a1a; color: white; font-family: sans-serif; overflow: hidden; touch-action: none; }
-        #ui { position: absolute; top: 0; width: 100%; z-index: 100; background: rgba(0,0,0,0.85); padding: 8px; display: flex; justify-content: center; align-items: center; gap: 8px; font-size: 13px; border-bottom: 2px solid #333; }
-        #scoreboard { position: absolute; top: 60px; width: 100%; display: flex; justify-content: center; font-size: 28px; font-weight: bold; pointer-events: none; z-index: 50; }
-        .score-box { margin: 0 10px; padding: 5px 15px; border-radius: 5px; min-width: 40px; text-align: center; }
-        .p1-s { background: #3498db; border-bottom: 4px solid #2980b9; } 
-        .p2-s { background: #e74c3c; border-bottom: 4px solid #c0392b; }
+        #ui { position: absolute; top: 0; width: 100%; z-index: 100; background: rgba(0,0,0,0.9); padding: 5px; display: flex; justify-content: space-around; align-items: center; border-bottom: 2px solid #444; height: 50px; }
+        #scoreboard { position: absolute; top: 55px; width: 100%; display: flex; justify-content: center; pointer-events: none; z-index: 50; opacity: 0.8; }
+        .score-box { margin: 0 5px; padding: 2px 15px; border-radius: 4px; font-size: 20px; font-weight: bold; }
+        .p1-s { background: #3498db; } .p2-s { background: #e74c3c; }
         
-        /* Sağ Alt Joystick */
-        #joystick-container { position: absolute; bottom: 30px; right: 30px; width: 110px; height: 110px; background: rgba(255,255,255,0.1); border-radius: 50%; z-index: 200; border: 2px solid rgba(255,255,255,0.2); }
-        #joystick-knob { position: absolute; top: 30px; left: 30px; width: 50px; height: 50px; background: rgba(255,255,255,0.4); border-radius: 50%; pointer-events: none; }
+        /* Joystick Orta Sağ */
+        #joystick-container { position: absolute; bottom: 30%; right: 20px; width: 100px; height: 100px; background: rgba(255,255,255,0.1); border-radius: 50%; z-index: 200; border: 2px solid rgba(255,255,255,0.2); }
+        #joystick-knob { position: absolute; top: 25px; left: 25px; width: 50px; height: 50px; background: rgba(255,255,255,0.4); border-radius: 50%; pointer-events: none; }
         
         canvas { display: block; }
         .flipped { transform: rotate(180deg); }
-        input, button { padding: 6px; border-radius: 4px; border: none; outline: none; }
-        button { background: #2ecc71; color: white; cursor: pointer; font-weight: bold; }
-        #copy-btn { background: #3498db; }
+        input { width: 70px; font-size: 12px; }
+        button { padding: 5px 10px; font-size: 12px; background: #2ecc71; border: none; color: white; border-radius: 3px; }
     </style>
 </head>
 <body>
 
 <div id="ui">
-    <span>ID: <b id="my-id">...</b></span>
-    <button id="copy-btn" onclick="copyId()">Kopyala</button>
-    <input type="text" id="remote-id" placeholder="Rakip ID" style="width: 80px;">
+    <div style="font-size: 10px; max-width: 120px; overflow: hidden;">ID: <b id="my-id">...</b></div>
+    <button onclick="copyId()">Kopyala</button>
+    <input type="text" id="remote-id" placeholder="Rakip ID">
     <button onclick="connectToPeer()">Bağlan</button>
 </div>
 
@@ -58,40 +56,39 @@ engine.world.gravity.y = 0;
 const render = Render.create({
     element: document.body,
     engine: engine,
-    options: { width: w, height: h, wireframes: false, background: '#1b5e20' }
+    options: { width: w, height: h, wireframes: false, background: '#226b26' }
 });
 
-// --- FİZİKSEL SINIRLAR VE KALELER ---
-const goalWidth = w * 0.45;
-const wallOpts = { isStatic: true, render: { fillStyle: '#114411' }, restitution: 1 };
+// --- SAHA VE GÖRÜNÜR KALELER ---
+const goalWidth = w * 0.5;
+const wallOpts = { isStatic: true, render: { fillStyle: '#114411' }, restitution: 0.5 };
 
 const walls = [
-    // Yan Duvarlar
-    Bodies.rectangle(-10, h/2, 40, h, wallOpts),
-    Bodies.rectangle(w+10, h/2, 40, h, wallOpts),
-    // Üst Sınır (Kaleyi çevreleyen kesin duvarlar)
-    Bodies.rectangle((w-goalWidth)/4, 10, (w-goalWidth)/2, 60, wallOpts),
-    Bodies.rectangle(w-(w-goalWidth)/4, 10, (w-goalWidth)/2, 60, wallOpts),
-    Bodies.rectangle(w/2, -20, w, 40, wallOpts), // En üst dış sınır
-    // Alt Sınır
-    Bodies.rectangle((w-goalWidth)/4, h-10, (w-goalWidth)/2, 60, wallOpts),
-    Bodies.rectangle(w-(w-goalWidth)/4, h-10, (w-goalWidth)/2, 60, wallOpts),
-    Bodies.rectangle(w/2, h+20, w, 40, wallOpts) // En alt dış sınır
+    Bodies.rectangle(-10, h/2, 40, h, wallOpts), // Sol
+    Bodies.rectangle(w+10, h/2, 40, h, wallOpts), // Sağ
+    // Üst kale bölgesi
+    Bodies.rectangle((w-goalWidth)/4, 60, (w-goalWidth)/2, 20, wallOpts), 
+    Bodies.rectangle(w-(w-goalWidth)/4, 60, (w-goalWidth)/2, 20, wallOpts),
+    Bodies.rectangle(w/2, 50, w, 5, { isStatic: true, render: { fillStyle: '#e74c3c' } }), // Kale Çizgisi Üst
+    // Alt kale bölgesi
+    Bodies.rectangle((w-goalWidth)/4, h-10, (w-goalWidth)/2, 20, wallOpts),
+    Bodies.rectangle(w-(w-goalWidth)/4, h-10, (w-goalWidth)/2, 20, wallOpts),
+    Bodies.rectangle(w/2, h-5, w, 5, { isStatic: true, render: { fillStyle: '#3498db' } }) // Kale Çizgisi Alt
 ];
 
-const ball = Bodies.circle(w/2, h/2, 14, { 
-    restitution: 0.8, frictionAir: 0.02, render: { fillStyle: '#ffffff' }, label: 'ball', mass: 1 
+const ball = Bodies.circle(w/2, h/2, 12, { 
+    restitution: 0.7, frictionAir: 0.03, render: { fillStyle: '#ffffff' }, label: 'ball' 
 });
 
-// Oyuncular - frictionAir artırıldı (0.12) daha kontrollü sürüş sağlar
-const p1 = Bodies.circle(w/2, h - 120, 24, { frictionAir: 0.12, render: { fillStyle: '#3498db' }, mass: 5 });
-const p2 = Bodies.circle(w/2, 120, 24, { frictionAir: 0.12, render: { fillStyle: '#e74c3c' }, mass: 5 });
+// Kontrolü kolaylaştırmak için frictionAir 0.18 yapıldı
+const p1 = Bodies.circle(w/2, h - 100, 22, { frictionAir: 0.18, render: { fillStyle: '#3498db' }, mass: 2 });
+const p2 = Bodies.circle(w/2, 100, 22, { frictionAir: 0.18, render: { fillStyle: '#e74c3c' }, mass: 2 });
 
 Composite.add(engine.world, [...walls, ball, p1, p2]);
 Render.run(render);
 Runner.run(Runner.create(), engine);
 
-// --- JOYSTICK MANTIĞI ---
+// --- JOYSTICK ---
 const knob = document.getElementById('joystick-knob');
 const container = document.getElementById('joystick-container');
 let moveDir = { x: 0, y: 0 };
@@ -109,62 +106,23 @@ function handleJoystick(e) {
     const rect = container.getBoundingClientRect();
     const centerX = rect.left + rect.width / 2;
     const centerY = rect.top + rect.height / 2;
-    
     let dx = touch.clientX - centerX;
     let dy = touch.clientY - centerY;
-    const maxDist = 40;
+    const maxDist = 35;
     const distance = Math.min(maxDist, Math.sqrt(dx*dx + dy*dy));
     const angle = Math.atan2(dy, dx);
-    
-    const moveX = Math.cos(angle) * distance;
-    const moveY = Math.sin(angle) * distance;
-    
-    knob.style.transform = `translate(${moveX}px, ${moveY}px)`;
-    
-    // YÖN DÜZELTME: Eğer oyuncu Client (isHost false) ise, kontrolleri ters çevir
-    let multiplier = isHost ? 1 : -1;
-    moveDir = { 
-        x: Math.cos(angle) * (distance/maxDist) * multiplier, 
-        y: Math.sin(angle) * (distance/maxDist) * multiplier 
-    };
+    knob.style.transform = `translate(${Math.cos(angle)*distance}px, ${Math.sin(angle)*distance}px)`;
+    let mult = isHost ? 1 : -1;
+    moveDir = { x: Math.cos(angle)*(distance/maxDist)*mult, y: Math.sin(angle)*(distance/maxDist)*mult };
 }
 
-// --- NETWORK VE OYUN ---
-function copyId() {
-    const id = document.getElementById('my-id').innerText;
-    navigator.clipboard.writeText(id).then(() => alert("ID Kopyalandı!"));
-}
-
-function checkGoals() {
-    if (!isHost) return;
-    // Üst kale (Mavi gol atar)
-    if (ball.position.y < 35 && Math.abs(ball.position.x - w/2) < goalWidth/2) {
-        scores.p1++; resetPositions();
-    } 
-    // Alt kale (Kırmızı gol atar)
-    else if (ball.position.y > h - 35 && Math.abs(ball.position.x - w/2) < goalWidth/2) {
-        scores.p2++; resetPositions();
-    }
-}
-
-function resetPositions() {
-    Body.setPosition(ball, { x: w/2, y: h/2 });
-    Body.setVelocity(ball, { x: 0, y: 0 });
-    Body.setPosition(p1, { x: w/2, y: h - 120 });
-    Body.setPosition(p2, { x: w/2, y: 120 });
-    document.getElementById('s1').innerText = scores.p1;
-    document.getElementById('s2').innerText = scores.p2;
-}
-
+// --- NETWORK ---
 const peer = new Peer();
 peer.on('open', (id) => document.getElementById('my-id').innerText = id);
-peer.on('connection', (c) => { 
-    conn = c; isHost = true; setupNetwork();
-});
+peer.on('connection', (c) => { conn = c; isHost = true; setupNetwork(); });
 
 function connectToPeer() {
-    const rId = document.getElementById('remote-id').value;
-    conn = peer.connect(rId);
+    conn = peer.connect(document.getElementById('remote-id').value);
     isHost = false;
     document.querySelector('canvas').classList.add('flipped');
     document.getElementById('scoreboard').classList.add('flipped');
@@ -173,35 +131,40 @@ function connectToPeer() {
 
 function setupNetwork() {
     conn.on('data', (data) => {
-        if (isHost) { if (data.p2f) Body.applyForce(p2, p2.position, data.p2f); }
+        if (isHost) { if (data.f) Body.applyForce(p2, p2.position, data.f); }
         else {
             if (data.b) Body.setPosition(ball, data.b);
             if (data.p1) Body.setPosition(p1, data.p1);
             if (data.p2) Body.setPosition(p2, data.p2);
-            if (data.s) {
-                document.getElementById('s1').innerText = data.s.p1;
-                document.getElementById('s2').innerText = data.s.p2;
-            }
+            if (data.s) { scores = data.s; document.getElementById('s1').innerText = scores.p1; document.getElementById('s2').innerText = scores.p2; }
         }
     });
 }
 
+function copyId() {
+    navigator.clipboard.writeText(document.getElementById('my-id').innerText);
+    alert("Kopyalandı!");
+}
+
 Events.on(engine, 'beforeUpdate', () => {
     const player = isHost ? p1 : p2;
-    const forceMag = 0.015; // Kuvvet biraz artırıldı çünkü sürtünme yüksek
-    
+    const force = 0.008; // Hassas kontrol için kuvvet düşürüldü
     if (moveDir.x !== 0 || moveDir.y !== 0) {
-        const force = { x: moveDir.x * forceMag, y: moveDir.y * forceMag };
-        Body.applyForce(player, player.position, force);
+        Body.applyForce(player, player.position, { x: moveDir.x * force, y: moveDir.y * force });
     }
-
     if (isHost) {
-        checkGoals();
+        if (ball.position.y < 70 && Math.abs(ball.position.x - w/2) < goalWidth/2) { scores.p1++; reset(); }
+        if (ball.position.y > h-20 && Math.abs(ball.position.x - w/2) < goalWidth/2) { scores.p2++; reset(); }
         if (conn?.open) conn.send({ b: ball.position, p1: p1.position, p2: p2.position, s: scores });
-    } else {
-        if (conn?.open) conn.send({ p2f: { x: moveDir.x * forceMag, y: moveDir.y * forceMag } });
+    } else if (conn?.open) {
+        conn.send({ f: { x: moveDir.x * force, y: moveDir.y * force } });
     }
 });
+
+function reset() {
+    Body.setPosition(ball, { x: w/2, y: h/2 }); Body.setVelocity(ball, { x: 0, y: 0 });
+    document.getElementById('s1').innerText = scores.p1; document.getElementById('s2').innerText = scores.p2;
+}
 </script>
 </body>
 </html>
